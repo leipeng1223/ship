@@ -383,7 +383,7 @@
         var colorFlag = false
         window.play = true
 
-        window.requested = [1]
+        window.requested = [0, 1]
 
         // 动画控制
         function animate() {
@@ -477,13 +477,6 @@
             if (window.loop == 70 && index != 0 && !isInArray(window.requested, index)) {
                 window.requested.push(index)
                 worker.postMessage(index)
-
-                // if (index == 20) {
-                //     index = 0
-                // }
-                // else {
-                //     index++
-                // }
             }
 
             else if (window.loop == 91) {
