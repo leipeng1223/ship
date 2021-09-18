@@ -50,18 +50,27 @@ var x = d3.scaleTime()
 function drag() {
 
     function dragstarted(event, d) {
-        //d3.select(this).raise().attr("stroke", "#78B6DA")
+        d3.select(this).raise().attr("stroke", "#78B6DA")
         window.play = false
-
     }
 
     function dragged(event, d) {
-        d3.select(this).attr('transform', `translate(${event.x - brushWidth / 2},0)`)
+        if (event.x <= (margin_timeline.left + brush_extent) && event.x >= (margin_timeline.left)) {
+            d3.select(this).attr('transform', `translate(${event.x - brushWidth / 2},0)`)
+        }
     }
 
     function dragended(event, d) {
-        //d3.select(this).attr("stroke", null);
-        window.t = Math.floor((event.x - margin_timeline.left) / brush_extent * 1822)
+        d3.select(this).attr("stroke", null);
+        if (event.x > (margin_timeline.left + brush_extent)) {
+            window.t = 1822
+        }
+        else if (event.x < margin_timeline.left) {
+            window.t = 0
+        }
+        else {
+            window.t = Math.floor((event.x - margin_timeline.left) / brush_extent * 1822)
+        }
 
         if (window.t >= 364) {
             window.t = 0
@@ -69,7 +78,7 @@ function drag() {
             window.play = true
         }
         else {
-            window.loop = t % 91
+            window.loop = window.t % 91
             window.play = true
         }
     }
