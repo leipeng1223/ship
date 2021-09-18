@@ -1,7 +1,7 @@
 self.addEventListener('message', function (e) {
     var i = e.data;
     console.log('message:' + i)
-    let file = '/slices/slice' + i + '.json'
+    let file = './slices/slice' + i + '.json'
     let request = new XMLHttpRequest();
     request.open("get", file);
     request.send(null);
