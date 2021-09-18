@@ -7,6 +7,7 @@ self.addEventListener('message', function (e) {
     request.send(null);
     request.onload = function () {
         if (request.status == 200) {
+            console.log('loading')
             let json = JSON.parse(request.responseText);
             postMessage(json)
         }
