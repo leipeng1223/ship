@@ -19,8 +19,8 @@ var playButton = svg_timeline
     .append("rect")
     .attr('id', 'play')
     .attr('fill', 'white')
-    .attr('height', brushHeight* 1.2)
-    .attr('width', brushHeight* 1.2)
+    .attr('height', brushHeight * 1.2)
+    .attr('width', brushHeight * 1.2)
     .attr('transform', `translate(${margin_timeline.left / 3 * 2},0)`)
     .on('click', () => {
         window.play = !window.play
@@ -64,8 +64,16 @@ function drag() {
         console.log('drag end')
         //d3.select(this).attr("stroke", null);
         window.t = Math.floor((event.x - margin_timeline.left) / brush_extent * 1822)
-        window.loop = t % 91
-        window.play = true
+
+        if (window.t >= 364) {
+            window.t = 0
+            window.loop = 0
+            window.play = true
+        }
+        else {
+            window.loop = t % 91
+            window.play = true
+        }
     }
 
     return d3.drag()

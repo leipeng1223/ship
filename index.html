@@ -108,12 +108,6 @@
 
 <body>
     <div id='info'>
-        <!-- <select>
-            <option value="volvo">Volvo</option>
-            <option value="saab">Saab</option>
-            <option value="opel">Opel</option>
-            <option value="audi">Audi</option>
-        </select> -->
         <span id='title'>World Cargo Ship 2013-2018</span>
         <span id='color'>Color <input type='checkbox' value='color' id='check'></input></span>
         <span id='DATE'></span>
@@ -124,8 +118,6 @@
     <div id='legend'></div>
 
     <div id='timeline'></div>
-
-    <!-- <div id='DATE'></div> -->
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
 
@@ -139,8 +131,6 @@
     <script type="text/javascript" src="dates.js"></script>
 
     <script type="module">
-
-        // Find the latest version by visiting https://cdn.skypack.dev/three.
 
         import * as THREE from 'https://cdn.skypack.dev/three@0.131.3';
 
@@ -480,8 +470,9 @@
                 window.loop = 0
             }
 
-            if (window.t == 1822) {
+            if (window.t >= 364) {
                 window.t = 0
+                window.tt = 0
             }
         }
     </script>
