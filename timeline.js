@@ -52,7 +52,6 @@ function drag() {
     function dragstarted(event, d) {
         //d3.select(this).raise().attr("stroke", "#78B6DA")
         window.play = false
-        console.log('drag start')
 
     }
 
@@ -61,7 +60,6 @@ function drag() {
     }
 
     function dragended(event, d) {
-        console.log('drag end')
         //d3.select(this).attr("stroke", null);
         window.t = Math.floor((event.x - margin_timeline.left) / brush_extent * 1822)
 
