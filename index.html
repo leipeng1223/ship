@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WORLD CARGO SHIP</title>
+</head>
+
+<style>
+    #info {
+        position: absolute;
+        height: 5%;
+        width: 99%;
+        background-color: black;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #title {
+        font-family: "Lucida Bright", Serif;
+        position: absolute;
+        left: 2%;
+        color: white;
+        font-size: 25px;
+    }
+
+    #color {
+        font-family: "Lucida Bright", Serif;
+        position: absolute;
+        left: 80%;
+        background-color: black;
+        color: white;
+        font-size: 25px;
+    }
+
+    #DATE {
+        font-family: "Lucida Bright", Serif;
+        position: absolute;
+        left: 90%;
+        color: white;
+        font-size: 25px;
+        cursor: hand;
+    }
+
+    #check {
+        transform: scale(1.6, 1.6);
+    }
+
+    #map {
+        position: absolute;
+        background-color: black;
+        height: 95%;
+        width: 99%;
+        top: 5%;
+    }
+
+    #legend {
+        position: fixed;
+        left: 92%;
+        top: 6%;
+        height: 20%;
+        width: 10%;
+    }
+
+    #timeline {
+        position: fixed;
+        top: 93%;
+        left: 0%;
+        height: 10%;
+        width: 99%;
+    }
+
+    #timeline text {
+        color: white;
+    }
+
+    #timeline line {
+        stroke: white;
+    }
+
+    #play {
+        cursor: hand;
+    }
+
+    #progressBar {
+        fill-opacity: 0.2;
+        fill: white;
+        rx: 8;
+        ry: 8;
+    }
+
+    #progressRect {
+        cursor: hand !important;
+        fill: white;
+        rx: 8;
+        ry: 8;
+        position: relative;
+        z-index: 999999;
+    }
+
+    svg .domain {
+        stroke: none;
+    }
+</style>
+
+<body>
+    <div id='info'>
+        <!-- <select>
+            <option value="volvo">Volvo</option>
+            <option value="saab">Saab</option>
+            <option value="opel">Opel</option>
+            <option value="audi">Audi</option>
+        </select> -->
+        <span id='title'>World Cargo Ship 2013-2018</span>
+        <span id='color'>Color <input type='checkbox' value='color' id='check'></input></span>
+        <span id='DATE'></span>
+    </div>
+
+    <div id='map'></div>
+
+    <div id='legend'></div>
+
+    <div id='timeline'></div>
+
+    <!-- <div id='DATE'></div> -->
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.131.3/examples/js/libs/stats.min.js"></script> -->
+
+    <script type="text/javascript" src="./slices/slice1.js"></script>
+
+    <script type="text/javascript" src="timeline.js"></script>
+
+    <script type="text/javascript" src="dates.js"></script>
+
+    <script type="module">
+
+        // Find the latest version by visiting https://cdn.skypack.dev/three.
+
+        import * as THREE from 'https://cdn.skypack.dev/three@0.131.3';
+
+        import { OrbitControls } from 'https://cdn.skypack.dev/three@0.131.3/examples/jsm/controls/OrbitControls.js';
+
+        //****************** WORKER *****************
+        var data = {}
+        var worker = new Worker('worker.js');
+        worker.onmessage = function (event) {
+            Object.assign(ship, event.data)
+            requested = false
+            if (index != 4) {
+                index++
+            }
+            else {
+                index = 0
+            }
+        }
+
+        //****************** STATS *****************
+        // var stats = new Stats();
+        // stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+        // document.body.appendChild(stats.dom);
+
+        //****************** INFO *****************
+
+        d3.select('#check').on('click', () => {
+            colorFlag = !colorFlag
+            if (colorFlag) {
+                document.getElementById('check').checked = true;
+                drawLegend()
+            }
+            else {
+                document.getElementById('check').checked = false;
+                d3.select('#legendSVG').remove()
+            }
+        })
+
+        var lgdPos = [
+            { 'text': 'Natural Gas', 'y': 0, 'color': 'magenta' },
+            { 'text': 'Petroleum', 'y': 20, 'color': 'yellow' },
+            { 'text': 'Cargo', 'y': 40, 'color': 'cyan' },
+            { 'text': 'Container', 'y': 60, 'color': 'red' }]
+
+        function drawLegend() {
+            let svg = d3.select('#legend')
+                .append('svg').attr('id', 'legendSVG')
+
+            svg.selectAll('.legendPoints')
+                .data(lgdPos)
+                .enter()
+                .append('rect')
+                .attr('height', 10)
+                .attr('width', 10)
+                .attr('fill', 'red')
+                .attr('transform', (d) => { return `translate(0,${d.y + 10})` })
+                .style("fill", d => d.color)
+
+            svg.selectAll('.legendText')
+                .data(lgdPos)
+                .enter()
+                .append('text')
+                .attr('x', 20)
+                .attr('y', d => d.y + 20)
+                .text(d => d.text)
+                .style("fill", 'white')
+                .style('font-family', "Lucida Bright")
+        }
+
+        //****************** SETTING *****************
+        var scene = new THREE.Scene()
+        let point
+        var width = parseFloat(d3.select('#map').style('width').slice(0, -2)); //窗口宽度
+        var height = parseFloat(d3.select('#map').style('height').slice(0, -2)); //窗口高度
+        var k = width / height; //窗口宽高比
+        var s = 200; //三维场景显示范围控制系数，系数越大，显示的范围越大
+        //创建相机对象
+        var camera = new THREE.OrthographicCamera(-s * k, s * k, s, -s, 1, 1000);
+        camera.position.set(0, 0, 300); //设置相机位置
+        //camera.up.set(0,-1,0)
+        camera.lookAt(scene.position); //设置相机方向(指向的场景对象)
+
+
+        var renderer = new THREE.WebGLRenderer()
+        // 设置画布的大小
+        renderer.setSize(width, height)
+        renderer.setClearColor('#292929', 1); //设置背景颜色
+        //这里 其实就是canvas 画布  renderer.domElement
+        document.getElementById('map').appendChild(renderer.domElement)
+        var ambientLight = new THREE.AmbientLight(0xffffff) // 环境光
+        scene.add(ambientLight)
+
+
+        //****************** ORBIT CONTROL *****************
+        var controls = new OrbitControls(camera, renderer.domElement);
+        controls.mouseButtons = {
+            LEFT: THREE.MOUSE.PAN,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.ROTATE
+        }
+        controls.minZoom = 1
+
+
+        //****************** MAP *****************
+        // 使用d3的投影转换
+        const projection = d3
+            .geoEquirectangular()
+            .center([0, 15])
+            .scale(150)
+            .translate([0, 0])
+
+        // 画世界地图
+        const jsondata = d3.json('country.json').then(function (jsondata) {
+            jsondata.features.forEach((feature) => {
+                const coordinates = feature.geometry.coordinates
+                // Polygon
+                if (feature.geometry.type == 'Polygon') {
+                    let polygon = coordinates[0]
+                    const points = [];
+                    polygon.forEach((p) => {
+                        let latlon = projection(p)
+                        points.push(new THREE.Vector2(projection(p)[0], -projection(p)[1]));
+                    })
+                    const shape = new THREE.Shape(points)
+                    const shapeGeometry = new THREE.ShapeGeometry(shape);
+                    let mesh = new THREE.Mesh(shapeGeometry, new THREE.MeshBasicMaterial({ color: '#000' }));
+                    scene.add(mesh);
+                }
+                // Multipolygon
+                else if (feature.geometry.type == 'MultiPolygon') {
+                    coordinates.forEach((polygon) => {
+                        const points = [];
+                        polygon[0].forEach((p) => {
+                            points.push(new THREE.Vector2(projection(p)[0], -projection(p)[1]));
+                        })
+                        const shape = new THREE.Shape(points)
+                        const shapeGeometry = new THREE.ShapeGeometry(shape);
+                        let mesh = new THREE.Mesh(shapeGeometry, new THREE.MeshBasicMaterial({ color: '#000' }));
+                        scene.add(mesh);
+                    })
+                }
+            })
+        })
+
+
+        //****************** SHIPS *****************
+        //画船舶点
+        const loader = new THREE.TextureLoader();
+        const texture = loader.load('point.png');
+
+        const pointMaterial = new THREE.PointsMaterial({
+            size: 2,
+            alphaTest: 0,
+            map: texture,
+            transparent: false,
+            vertexColors: true
+        })
+        const pointGeometry = new THREE.BufferGeometry();
+        const colors = new Float32Array(38000 * 3);
+        const positions = new Float32Array(38000 * 3);
+        pointGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        pointGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        point = new THREE.Points(pointGeometry, pointMaterial);
+        scene.add(point);
+
+        // const pointGeometry = new THREE.BufferGeometry();
+        // const positions = new Float32Array(100 * 3);
+        // pointGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        // point = new THREE.Points(pointGeometry, pointMaterial);
+        // scene.add(point);
+
+
+
+        //****************** OCEAN DATA *****************
+        var oceans = [{
+            'name': 'Indian Ocean', 'coordinates': [79.8046875,
+                -23.88583769986199]
+        }, {
+            'name': 'South Atlantic Ocean', 'coordinates': [-14.414062499999998,
+            -29.84064389983441]
+        }, {
+            'name': 'North Atlantic Ocean', 'coordinates': [-36.9140625,
+                39.36827914916014]
+        }, {
+            'name': 'North Pacific Ocean', 'coordinates': [197.9296875,
+                34.59704151614417]
+        }, {
+            'name': 'South Pacific Ocean', 'coordinates': [214.1015625,
+                -34.30714385628803]
+        }, {
+            'name': 'Arctic Ocean', 'coordinates': [68.203125,
+                82.63133285369297]
+        }]
+        //标注大洋
+        oceans.forEach((o) => {
+            let cvs = document.createElement("canvas")
+            let ctx = cvs.getContext("2d")
+            ctx.textBaseline = 'middle'
+            ctx.fillStyle = '#c4c4c4'
+            ctx.font = "bold 22px Lucida Bright"
+            //ctx.lineWidth = 1;
+            //ctx.fillText(o.name, 100, 60)
+            ctx.fillText(o.name, 60, 60)
+
+            let spriteTexture = new THREE.Texture(cvs)
+            spriteTexture.needsUpdate = true;
+
+            let spriteMaterial = new THREE.SpriteMaterial({ map: spriteTexture })
+            let textObj = new THREE.Sprite(spriteMaterial)
+            textObj.scale.set(100, 50, 0)
+            textObj.position.set(projection(o.coordinates)[0], -projection(o.coordinates)[1], 5)
+            scene.add(textObj)
+
+            // let label = new THREE.Sprite(new THREE.SpriteMaterial({color:'#ffffff'}))
+            // label.scale.set(2,2,0)
+            // label.position.set(projection(o.coordinates)[0], -projection(o.coordinates)[1], 5)
+            // scene.add(label)
+        })
+
+
+        //****************** ANIMATION *****************
+        window.t = 0 // 这样声明一定是全局变量
+        window.loop = 0
+        var now
+        var then = Date.now();
+        var fps = 8
+        var interval = 1000 / fps
+        var delta
+        var index = 2
+        var colorFlag = false
+        window.play = true
+
+        var requested = false
+
+        // 动画控制
+        function animate() {
+
+            now = Date.now();
+            delta = now - then;
+
+            if (delta > interval) {
+                then = now - (delta % interval);
+
+                if (window.play == true) {
+                    if (ship[dates[window.t]]) {
+                        update()
+                    }
+                    else {
+                        if (!requested) {
+                            index = Math.floor(t / 91) + 1
+                            worker.postMessage(index)
+                            console.log('waiting')
+                            requested = true
+                        }
+                    }
+                }
+            }
+            requestAnimationFrame(animate)
+        }
+        requestAnimationFrame(animate)
+
+
+        // 具体画面更新
+        function update() {
+
+            document.getElementById('DATE').innerHTML = dates[window.t];
+
+            progressRect.attr('transform', `translate(${margin_timeline.left - brushWidth / 2 + window.t * brush_extent / 1822},0)`)
+
+            let test = ship[dates[window.t]]
+            var idx = 0;
+
+            test.forEach((p) => {
+                positions[idx] = projection([p[0], p[1]])[0];
+                positions[idx + 1] = -projection([p[0], p[1]])[1];
+                positions[idx + 2] = 1;
+
+                if (!colorFlag) {
+                    colors[idx] = 1
+                    colors[idx + 1] = 1
+                    colors[idx + 2] = 1
+                }
+                else {
+                    if (p[2] == 1) { // violet
+                        colors[idx] = 1
+                        colors[idx + 1] = 0
+                        colors[idx + 2] = 1
+                    }
+                    else if (p[2] == 2) { // yellow
+                        colors[idx] = 1
+                        colors[idx + 1] = 1
+                        colors[idx + 2] = 0
+                    }
+                    else if (p[2] == 3) { // lightblue
+                        colors[idx] = 0.2
+                        colors[idx + 1] = 1
+                        colors[idx + 2] = 1
+                    }
+                    else {
+                        colors[idx] = 1 // red
+                        colors[idx + 1] = 0
+                        colors[idx + 2] = 0
+                    }
+                }
+                idx = idx + 3
+            })
+
+
+            for (let i = idx; i < 38000 * 3; i++) {
+                positions[i] = 0
+                colors[i] = 0
+            }
+
+            point.geometry.attributes.position.needsUpdate = true;
+            point.geometry.attributes.color.needsUpdate = true;
+
+            // 重新渲染
+            renderer.render(scene, camera);
+            //stats.update();
+            window.t++;
+            window.loop++
+
+            // （最多有1822个时间截面）
+            if (window.loop == 70 && index != 0) {
+
+                worker.postMessage(index)
+
+                // if (index == 20) {
+                //     index = 0
+                // }
+                // else {
+                //     index++
+                // }
+            }
+
+            else if (window.loop == 91) {
+                window.loop = 0
+            }
+
+            if (window.t == 1822) {
+                window.t = 0
+            }
+        }
+    </script>
+</body>
+
+</html>
