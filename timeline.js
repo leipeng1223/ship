@@ -72,15 +72,8 @@ function drag() {
             window.t = Math.floor((event.x - margin_timeline.left) / brush_extent * 1822)
         }
 
-        if (window.t >= 364) {
-            window.t = 0
-            window.loop = 0
-            window.play = true
-        }
-        else {
-            window.loop = window.t % 91
-            window.play = true
-        }
+        window.loop = t % 91
+        window.play = true
     }
 
     return d3.drag()

@@ -27,10 +27,19 @@
         font-size: 15px;
     }
 
+    #shape {
+        font-family: "Lucida Bright", Serif;
+        position: absolute;
+        left: 70%;
+        background-color: black;
+        color: white;
+        font-size: 15px;
+    }
+
     #color {
         font-family: "Lucida Bright", Serif;
         position: absolute;
-        left: 85%;
+        left: 80%;
         background-color: black;
         color: white;
         font-size: 15px;
@@ -39,13 +48,13 @@
     #DATE {
         font-family: "Lucida Bright", Serif;
         position: absolute;
-        left: 92%;
+        left: 90%;
         color: white;
         font-size: 15px;
         cursor: hand;
     }
 
-    #check {
+    #check1 #check2 {
         transform: scale(1.2, 1.2);
     }
 
@@ -108,14 +117,9 @@
 
 <body>
     <div id='info'>
-        <!-- <select>
-            <option value="volvo">Volvo</option>
-            <option value="saab">Saab</option>
-            <option value="opel">Opel</option>
-            <option value="audi">Audi</option>
-        </select> -->
-        <span id='title'>World Cargo Ship (demo 2013-2014)</span>
-        <span id='color'>Color <input type='checkbox' value='color' id='check'></input></span>
+        <span id='title'>World Cargo Ship 2013-2018</span>
+        <span id='shape'>Sphere <input type='checkbox' id='check1'></input></span>
+        <span id='color'>Color <input type='checkbox' id='check2'></input></span>
         <span id='DATE'></span>
     </div>
 
@@ -146,12 +150,13 @@
 
         import { OrbitControls } from 'https://cdn.skypack.dev/three@0.131.3/examples/jsm/controls/OrbitControls.js';
 
+
         //****************** WORKER *****************
         var data = {}
         var worker = new Worker('worker.js');
         worker.onmessage = function (event) {
             Object.assign(ship, event.data)
-            if (index != 4) {
+            if (index != 20) {
                 index++
             }
             else {
@@ -159,6 +164,7 @@
             }
             console.log(window.requested)
         }
+
 
         //****************** STATS *****************
         // var stats = new Stats();
@@ -174,16 +180,57 @@
             return false;
         }
 
-        //****************** INFO *****************
 
-        d3.select('#check').on('click', () => {
+        //****************** INFO *****************
+        d3.select('#check1').on('click', () => {
+            sphereFlag = !sphereFlag
+
+            // 切换到球面
+            if (sphereFlag) {
+                document.getElementById('check1').checked = true;
+                window.planeMap.visible = false
+                controls.reset()
+                controls.autoRotate = true
+                controls.autoRotateSpeed = 10
+                renderer.setClearColor('#858585', 1); //设置背景颜色
+                var geometry = new THREE.SphereGeometry(180, 50, 50);
+                //var material = new THREE.MeshBasicMaterial({ color: '#292929' });
+                var material = new THREE.MeshPhongMaterial({
+                    map: new THREE.TextureLoader().load('earth0.jpg'),
+                });
+                window.sphere = new THREE.Mesh(geometry, material);
+                scene.add(sphere);
+
+                controls.mouseButtons = {
+                    LEFT: THREE.MOUSE.ROTATE,
+                    MIDDLE: THREE.MOUSE.DOLLY
+                }
+            }
+
+            // 切换到平面
+            else {
+                document.getElementById('check1').checked = false;
+                window.sphere.visible = false
+                controls.reset()
+                controls.autoRotate = false
+                window.planeMap.visible = true
+                renderer.setClearColor('#3d3d3d', 1); //设置背景颜色
+                controls.mouseButtons = {
+                    LEFT: THREE.MOUSE.PAN,
+                    MIDDLE: THREE.MOUSE.DOLLY,
+                    RIGHT: THREE.MOUSE.ROTATE
+                }
+            }
+        })
+
+        d3.select('#check2').on('click', () => {
             colorFlag = !colorFlag
             if (colorFlag) {
-                document.getElementById('check').checked = true;
+                document.getElementById('check2').checked = true;
                 drawLegend()
             }
             else {
-                document.getElementById('check').checked = false;
+                document.getElementById('check2').checked = false;
                 d3.select('#legendSVG').remove()
             }
         })
@@ -220,6 +267,7 @@
                 .style('font-size', '12px')
         }
 
+
         //****************** SETTING *****************
         var scene = new THREE.Scene()
         let point
@@ -237,7 +285,7 @@
         var renderer = new THREE.WebGLRenderer()
         // 设置画布的大小
         renderer.setSize(width, height)
-        renderer.setClearColor('#292929', 1); //设置背景颜色
+        renderer.setClearColor('#3d3d3d', 1); //设置背景颜色
         //这里 其实就是canvas 画布  renderer.domElement
         document.getElementById('map').appendChild(renderer.domElement)
         var ambientLight = new THREE.AmbientLight(0xffffff) // 环境光
@@ -263,6 +311,7 @@
             .translate([0, 0])
 
         // 画世界地图
+        window.planeMap = new THREE.Group();
         const jsondata = d3.json('country.json').then(function (jsondata) {
             jsondata.features.forEach((feature) => {
                 const coordinates = feature.geometry.coordinates
@@ -277,7 +326,7 @@
                     const shape = new THREE.Shape(points)
                     const shapeGeometry = new THREE.ShapeGeometry(shape);
                     let mesh = new THREE.Mesh(shapeGeometry, new THREE.MeshBasicMaterial({ color: '#000' }));
-                    scene.add(mesh);
+                    window.planeMap.add(mesh);
                 }
                 // Multipolygon
                 else if (feature.geometry.type == 'MultiPolygon') {
@@ -289,11 +338,13 @@
                         const shape = new THREE.Shape(points)
                         const shapeGeometry = new THREE.ShapeGeometry(shape);
                         let mesh = new THREE.Mesh(shapeGeometry, new THREE.MeshBasicMaterial({ color: '#000' }));
-                        scene.add(mesh);
+                        window.planeMap.add(mesh);
                     })
                 }
             })
+            scene.add(window.planeMap)
         })
+
 
 
         //****************** SHIPS *****************
@@ -302,26 +353,19 @@
         const texture = loader.load('point.png');
 
         const pointMaterial = new THREE.PointsMaterial({
-            size: 2,
+            size: 1,
             alphaTest: 0,
             map: texture,
             transparent: false,
             vertexColors: true
         })
         const pointGeometry = new THREE.BufferGeometry();
-        const colors = new Float32Array(38000 * 3);
-        const positions = new Float32Array(38000 * 3);
+        const colors = new Float32Array(30498 * 3);
+        const positions = new Float32Array(30498 * 3);
         pointGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         pointGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
         point = new THREE.Points(pointGeometry, pointMaterial);
         scene.add(point);
-
-        // const pointGeometry = new THREE.BufferGeometry();
-        // const positions = new Float32Array(100 * 3);
-        // pointGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        // point = new THREE.Points(pointGeometry, pointMaterial);
-        // scene.add(point);
-
 
 
         //****************** OCEAN DATA *****************
@@ -350,7 +394,7 @@
             let ctx = cvs.getContext("2d")
             ctx.textBaseline = 'middle'
             ctx.fillStyle = '#c4c4c4'
-            ctx.font = "bold 22px Lucida Bright"
+            ctx.font = "bold 22px Arial"
             //ctx.lineWidth = 1;
             //ctx.fillText(o.name, 100, 60)
             ctx.fillText(o.name, 60, 60)
@@ -362,7 +406,7 @@
             let textObj = new THREE.Sprite(spriteMaterial)
             textObj.scale.set(100, 50, 0)
             textObj.position.set(projection(o.coordinates)[0], -projection(o.coordinates)[1], 5)
-            scene.add(textObj)
+            window.planeMap.add(textObj)
 
             // let label = new THREE.Sprite(new THREE.SpriteMaterial({color:'#ffffff'}))
             // label.scale.set(2,2,0)
@@ -381,6 +425,7 @@
         var delta
         var index = 2
         var colorFlag = false
+        var sphereFlag = false
         window.play = true
 
         window.requested = [0, 1]
@@ -407,6 +452,12 @@
                         }
                     }
                 }
+                if (sphereFlag) {
+                    controls.update()
+                }
+                // 重新渲染放在这里，保证暂时也能放大
+                renderer.render(scene, camera);
+
             }
             requestAnimationFrame(animate)
         }
@@ -424,10 +475,20 @@
             var idx = 0;
 
             test.forEach((p) => {
-                positions[idx] = projection([p[0], p[1]])[0];
-                positions[idx + 1] = -projection([p[0], p[1]])[1];
-                positions[idx + 2] = 1;
+                // points
+                if (!sphereFlag) {
+                    positions[idx] = projection([p[0], p[1]])[0];
+                    positions[idx + 1] = -projection([p[0], p[1]])[1];
+                    positions[idx + 2] = 1;
+                }
+                else {
+                    let pos = lglt2xyz(p[0], p[1], 180)
+                    positions[idx] = pos.x
+                    positions[idx + 1] = pos.y
+                    positions[idx + 2] = pos.z
+                }
 
+                // color
                 if (!colorFlag) {
                     colors[idx] = 1
                     colors[idx + 1] = 1
@@ -458,8 +519,7 @@
                 idx = idx + 3
             })
 
-
-            for (let i = idx; i < 38000 * 3; i++) {
+            for (let i = idx; i < 30498 * 3; i++) {
                 positions[i] = 0
                 colors[i] = 0
             }
@@ -467,9 +527,8 @@
             point.geometry.attributes.position.needsUpdate = true;
             point.geometry.attributes.color.needsUpdate = true;
 
-            // 重新渲染
-            renderer.render(scene, camera);
             //stats.update();
+
             window.t++;
             window.loop++
 
@@ -478,14 +537,22 @@
                 window.requested.push(index)
                 worker.postMessage(index)
             }
-
             else if (window.loop == 91) {
                 window.loop = 0
             }
-
-            if (window.t == 364) {
+            if (window.t == 1822) {
                 window.t = 0
-                window.loop = 0
+            }
+        }
+
+        //****************** latlon 2 xyz *****************
+        function lglt2xyz(lng, lat, radius) {
+            const phi = (180 + lng) * (Math.PI / 180)
+            const theta = (90 - lat) * (Math.PI / 180)
+            return {
+                x: -radius * Math.sin(theta) * Math.cos(phi),
+                y: radius * Math.cos(theta),
+                z: radius * Math.sin(theta) * Math.sin(phi)
             }
         }
     </script>
